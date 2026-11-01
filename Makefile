@@ -5,7 +5,7 @@
 CC = gcc
 CFLAGS = -std=c99 -Wall -Wextra -O2
 
-SRC = src/main.c
+SRC = src/main.c src/vm.c
 
 ifeq ($(OS),Windows_NT)
     SHELL = cmd.exe
@@ -18,7 +18,7 @@ endif
 
 all: game$(EXE)
 
-game$(EXE): $(SRC)
+game$(EXE): $(SRC) src/vm.h
 	$(CC) $(CFLAGS) -o $@ $(SRC)
 
 clean:
