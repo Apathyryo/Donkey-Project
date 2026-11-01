@@ -1,0 +1,7 @@
+*.o
+*.exe
+game
+game32
+run_tests
+run_fuzz
+web/
