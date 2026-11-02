@@ -5,7 +5,8 @@
 CC = gcc
 CFLAGS = -std=c99 -Wall -Wextra -O2
 
-SRC = src/main.c src/vm.c
+SRC = src/main.c src/vm.c src/forth.c
+HDR = src/vm.h src/forth.h
 
 ifeq ($(OS),Windows_NT)
     SHELL = cmd.exe
@@ -20,7 +21,7 @@ endif
 
 all: game$(EXE)
 
-game$(EXE): $(SRC) src/vm.h
+game$(EXE): $(SRC) $(HDR)
 	$(CC) $(CFLAGS) -o $@ $(SRC)
 
 # Модульные тесты
