@@ -8,6 +8,7 @@ void vm_init(VM *vm)
         vm->data[i] = 0;
     vm->code_len = 0;
     vm->sp = 0;
+    vm->rp = 0;
     vm->pc = 0;
     vm->err = VM_OK;
 }
@@ -50,12 +51,14 @@ static int32_t fetch(VM *vm)
     return vm->code[vm->pc++];
 }
 
-/* Выполнять команды с адреса addr до OP_HALT или до ошибки */
+/* Выполнять команды с адреса addr до OP_HALT, до выхода
+   из начального слова по OP_RET или до ошибки */
 int vm_run(VM *vm, int addr)
 {
     int32_t a, b;
 
     vm->pc = addr;
+    vm->rp = 0;
     vm->err = VM_OK;
     while (vm->err == VM_OK) {
         int32_t op = fetch(vm);
@@ -163,6 +166,30 @@ int vm_run(VM *vm, int addr)
                 break;
             }
             vm->data[a] = b;
+            break;
+        case OP_JMP:
+            vm->pc = fetch(vm);
+            break;
+        case OP_JZ:
+            a = fetch(vm);
+            if (vm_pop(vm) == 0)
+                vm->pc = a;
+            break;
+        case OP_CALL:
+            a = fetch(vm);
+            if (vm->rp >= STACK_SIZE) {
+                vm->err = VM_ERR_OVERFLOW;
+                break;
+            }
+            vm->rs[vm->rp++] = vm->pc;
+            vm->pc = a;
+            break;
+        case OP_RET:
+            /* стек возвратов пуст - значит, закончилось слово,
+               с которого начали выполнение */
+            if (vm->rp == 0)
+                return vm->err;
+            vm->pc = vm->rs[--vm->rp];
             break;
         default:
             vm->err = VM_ERR_BAD_OP;
