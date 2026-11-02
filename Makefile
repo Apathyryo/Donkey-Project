@@ -11,9 +11,11 @@ ifeq ($(OS),Windows_NT)
     SHELL = cmd.exe
     EXE = .exe
     RM = del /Q
+    RUN =
 else
     EXE =
     RM = rm -f
+    RUN = ./
 endif
 
 all: game$(EXE)
@@ -21,7 +23,14 @@ all: game$(EXE)
 game$(EXE): $(SRC) src/vm.h
 	$(CC) $(CFLAGS) -o $@ $(SRC)
 
-clean:
-	-$(RM) game$(EXE)
+# Модульные тесты
+run_tests$(EXE): tests/test_vm.c src/vm.c src/vm.h
+	$(CC) $(CFLAGS) -o $@ tests/test_vm.c src/vm.c
 
-.PHONY: all clean
+test: run_tests$(EXE)
+	$(RUN)run_tests$(EXE)
+
+clean:
+	-$(RM) game$(EXE) run_tests$(EXE)
+
+.PHONY: all test clean

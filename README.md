@@ -25,3 +25,9 @@ Linux:
 Windows (MinGW):
 
     mingw32-make
+
+## Тесты
+
+Модульные тесты ВМ лежат в `tests/test_vm.c`. Запуск:
+
+    make test
