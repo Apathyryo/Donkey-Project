@@ -2,6 +2,7 @@
 *.exe
 game
 game32
-run_tests
+test_vm
+test_forth
 run_fuzz
 web/

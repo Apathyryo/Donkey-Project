@@ -1,17 +1,6 @@
 /* Модульные тесты виртуальной машины */
-#include <stdio.h>
+#include "check.h"
 #include "../src/vm.h"
-
-static int total = 0;
-static int failed = 0;
-
-#define CHECK(cond) do { \
-    total++; \
-    if (!(cond)) { \
-        failed++; \
-        printf("FAIL %s:%d: %s\n", __FILE__, __LINE__, #cond); \
-    } \
-} while (0)
 
 static VM vm;
 
@@ -152,6 +141,6 @@ int main(void)
     test_call();
     test_errors();
 
-    printf("%d tests, %d failed\n", total, failed);
+    printf("vm: %d tests, %d failed\n", total, failed);
     return failed != 0;
 }

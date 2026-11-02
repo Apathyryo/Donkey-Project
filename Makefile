@@ -25,13 +25,17 @@ game$(EXE): $(SRC) $(HDR)
 	$(CC) $(CFLAGS) -o $@ $(SRC)
 
 # Модульные тесты
-run_tests$(EXE): tests/test_vm.c src/vm.c src/vm.h
+test_vm$(EXE): tests/test_vm.c tests/check.h src/vm.c src/vm.h
 	$(CC) $(CFLAGS) -o $@ tests/test_vm.c src/vm.c
 
-test: run_tests$(EXE)
-	$(RUN)run_tests$(EXE)
+test_forth$(EXE): tests/test_forth.c tests/check.h src/vm.c src/forth.c $(HDR)
+	$(CC) $(CFLAGS) -o $@ tests/test_forth.c src/vm.c src/forth.c
+
+test: test_vm$(EXE) test_forth$(EXE)
+	$(RUN)test_vm$(EXE)
+	$(RUN)test_forth$(EXE)
 
 clean:
-	-$(RM) game$(EXE) run_tests$(EXE)
+	-$(RM) game$(EXE) test_vm$(EXE) test_forth$(EXE)
 
 .PHONY: all test clean
