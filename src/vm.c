@@ -2,6 +2,10 @@
 
 void vm_init(VM *vm)
 {
+    int i;
+
+    for (i = 0; i < DATA_SIZE; i++)
+        vm->data[i] = 0;
     vm->code_len = 0;
     vm->sp = 0;
     vm->pc = 0;
@@ -109,6 +113,56 @@ int vm_run(VM *vm, int addr)
                 break;
             }
             vm_push(vm, op == OP_DIV ? a / b : a % b);
+            break;
+        case OP_EQ:
+            b = vm_pop(vm);
+            a = vm_pop(vm);
+            vm_push(vm, a == b);
+            break;
+        case OP_LT:
+            b = vm_pop(vm);
+            a = vm_pop(vm);
+            vm_push(vm, a < b);
+            break;
+        case OP_GT:
+            b = vm_pop(vm);
+            a = vm_pop(vm);
+            vm_push(vm, a > b);
+            break;
+        case OP_AND:
+            b = vm_pop(vm);
+            a = vm_pop(vm);
+            vm_push(vm, a & b);
+            break;
+        case OP_OR:
+            b = vm_pop(vm);
+            a = vm_pop(vm);
+            vm_push(vm, a | b);
+            break;
+        case OP_NOT:
+            a = vm_pop(vm);
+            vm_push(vm, a == 0);
+            break;
+        case OP_LOAD:
+            a = vm_pop(vm);
+            if (vm->err != VM_OK)
+                break;
+            if (a < 0 || a >= DATA_SIZE) {
+                vm->err = VM_ERR_BAD_ADDR;
+                break;
+            }
+            vm_push(vm, vm->data[a]);
+            break;
+        case OP_STORE:
+            a = vm_pop(vm);
+            b = vm_pop(vm);
+            if (vm->err != VM_OK)
+                break;
+            if (a < 0 || a >= DATA_SIZE) {
+                vm->err = VM_ERR_BAD_ADDR;
+                break;
+            }
+            vm->data[a] = b;
             break;
         default:
             vm->err = VM_ERR_BAD_OP;

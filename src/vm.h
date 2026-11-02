@@ -6,6 +6,7 @@
 /* Размеры памяти ВМ (в ячейках). Ячейка всегда 32 бита,
    поэтому программа работает одинаково на 32- и 64-битных процессорах. */
 #define CODE_SIZE  8192
+#define DATA_SIZE  4096
 #define STACK_SIZE 256
 
 /* Команды ВМ */
@@ -21,6 +22,14 @@ enum {
     OP_MUL,    /* a b -- a*b */
     OP_DIV,    /* a b -- a/b */
     OP_MOD,    /* a b -- a%b */
+    OP_EQ,     /* a b -- 1, если a == b, иначе 0 */
+    OP_LT,     /* a b -- 1, если a < b, иначе 0 */
+    OP_GT,     /* a b -- 1, если a > b, иначе 0 */
+    OP_AND,    /* a b -- a&b (побитовое И) */
+    OP_OR,     /* a b -- a|b (побитовое ИЛИ) */
+    OP_NOT,    /* a -- 1, если a == 0, иначе 0 */
+    OP_LOAD,   /* addr -- data[addr] */
+    OP_STORE,  /* x addr -- , data[addr] = x */
     OP_COUNT   /* число команд */
 };
 
@@ -37,6 +46,7 @@ enum {
 typedef struct {
     int32_t code[CODE_SIZE];  /* байт-код */
     int code_len;             /* сколько ячеек кода занято */
+    int32_t data[DATA_SIZE];  /* память для переменных */
     int32_t ds[STACK_SIZE];   /* стек данных */
     int sp;                   /* число элементов на стеке */
     int pc;                   /* адрес текущей команды */
