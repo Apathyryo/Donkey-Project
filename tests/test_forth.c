@@ -90,6 +90,56 @@ static void test_chars(void)
     CHECK(run(": main 'AB' ;") == -1 && error_has("unknown word"));
 }
 
+static void test_if(void)
+{
+    const char *abs = ": abs dup 0 < if 0 swap - then ; ";
+    const char *sign = ": sign dup 0 < if drop -1 else 0 > if 1 else 0 then then ; ";
+    char src[200];
+
+    CHECK(run(": main 1 if 10 then ;") == VM_OK && top() == 10);
+    CHECK(run(": main 0 if 10 then ;") == VM_OK && vm.sp == 0);
+    CHECK(run(": main 1 if 10 else 20 then ;") == VM_OK && top() == 10);
+    CHECK(run(": main 0 if 10 else 20 then ;") == VM_OK && top() == 20);
+
+    sprintf(src, "%s : main -5 abs ;", abs);
+    CHECK(run(src) == VM_OK && top() == 5);
+    sprintf(src, "%s : main 7 abs ;", abs);
+    CHECK(run(src) == VM_OK && top() == 7);
+
+    /* вложенные if */
+    sprintf(src, "%s : main -3 sign 0 sign 8 sign ;", sign);
+    CHECK(run(src) == VM_OK && vm.sp == 3
+          && vm.ds[0] == -1 && vm.ds[1] == 0 && vm.ds[2] == 1);
+}
+
+static void test_loops(void)
+{
+    /* сумма чисел от 1 до 10 */
+    CHECK(run("variable i variable s "
+              ": main 0 s ! 1 i ! "
+              "begin s @ i @ + s ! i @ 1 + i ! i @ 10 > until s @ ;")
+          == VM_OK && top() == 55 && vm.sp == 1);
+    /* цикл внутри цикла: 3 * 4 = 12 повторов */
+    CHECK(run("variable n "
+              ": inner 4 begin n @ 1 + n ! 1 - dup 0 = until drop ; "
+              ": main 3 begin inner 1 - dup 0 = until drop n @ ;")
+          == VM_OK && top() == 12);
+    /* рекурсия: факториал */
+    CHECK(run(": fact dup 1 > if dup 1 - fact * then ; : main 5 fact ;")
+          == VM_OK && top() == 120);
+}
+
+static void test_control_errors(void)
+{
+    CHECK(run(": main then ;") == -1 && error_has("unmatched 'then'"));
+    CHECK(run(": main else ;") == -1 && error_has("unmatched 'else'"));
+    CHECK(run(": main until ;") == -1 && error_has("unmatched 'until'"));
+    CHECK(run(": main begin 1 then ;") == -1 && error_has("unmatched 'then'"));
+    CHECK(run(": main 1 if ;") == -1 && error_has("unclosed"));
+    CHECK(run(": main begin ;") == -1 && error_has("unclosed"));
+    CHECK(run("if") == -1 && error_has("outside definition"));
+}
+
 static void test_comments(void)
 {
     CHECK(run("\\ comment\n: main ( n -- ) 1 \\ one\n 2 + ;") == VM_OK
@@ -116,6 +166,9 @@ int main(void)
     test_words();
     test_variables();
     test_chars();
+    test_if();
+    test_loops();
+    test_control_errors();
     test_comments();
     test_errors();
 

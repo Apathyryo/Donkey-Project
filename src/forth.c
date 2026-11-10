@@ -141,16 +141,84 @@ static int add_word(Forth *f, int addr, int is_var)
     return 0;
 }
 
+/* Виды управляющих конструкций */
+enum { CTRL_IF, CTRL_ELSE, CTRL_BEGIN };
+
+static int ctrl_push(Forth *f, int kind, int addr)
+{
+    if (f->nctrl >= MAX_CTRL)
+        return error(f, "too deep nesting at");
+    f->ctrl_kind[f->nctrl] = kind;
+    f->ctrl_addr[f->nctrl] = addr;
+    f->nctrl++;
+    return 0;
+}
+
+/* Вид последней открытой конструкции или -1, если их нет */
+static int ctrl_top(Forth *f)
+{
+    if (f->nctrl == 0)
+        return -1;
+    return f->ctrl_kind[f->nctrl - 1];
+}
+
+/* Обработать if, else, then, begin, until.
+   Возвращает 1, если слово было управляющим, 0 - если нет, -1 - ошибка. */
+static int compile_control(Forth *f)
+{
+    VM *vm = f->vm;
+
+    if (strcmp(f->token, "if") == 0) {
+        /* условный переход вперёд, адрес пока неизвестен */
+        vm_emit(vm, OP_JZ);
+        if (ctrl_push(f, CTRL_IF, vm->code_len) != 0)
+            return -1;
+        vm_emit(vm, 0);
+    } else if (strcmp(f->token, "else") == 0) {
+        if (ctrl_top(f) != CTRL_IF)
+            return error(f, "unmatched");
+        /* конец ветки if - прыжок через ветку else */
+        vm_emit(vm, OP_JMP);
+        vm_emit(vm, 0);
+        if (vm->err != VM_OK)
+            return 1;
+        /* if при ложном условии прыгает сюда, в начало ветки else */
+        vm->code[f->ctrl_addr[f->nctrl - 1]] = vm->code_len;
+        f->ctrl_kind[f->nctrl - 1] = CTRL_ELSE;
+        f->ctrl_addr[f->nctrl - 1] = vm->code_len - 1;
+    } else if (strcmp(f->token, "then") == 0) {
+        if (ctrl_top(f) != CTRL_IF && ctrl_top(f) != CTRL_ELSE)
+            return error(f, "unmatched");
+        f->nctrl--;
+        vm->code[f->ctrl_addr[f->nctrl]] = vm->code_len;
+    } else if (strcmp(f->token, "begin") == 0) {
+        /* запоминаем адрес начала цикла */
+        if (ctrl_push(f, CTRL_BEGIN, vm->code_len) != 0)
+            return -1;
+    } else if (strcmp(f->token, "until") == 0) {
+        if (ctrl_top(f) != CTRL_BEGIN)
+            return error(f, "unmatched");
+        /* пока на стеке 0, возвращаемся в начало цикла */
+        f->nctrl--;
+        vm_emit(vm, OP_JZ);
+        vm_emit(vm, f->ctrl_addr[f->nctrl]);
+    } else {
+        return 0;
+    }
+    return 1;
+}
+
 /* Перевести исходный текст в байт-код.
    Возвращает 0 при успехе, -1 при ошибке (текст ошибки в f->error). */
 int forth_compile(Forth *f, VM *vm, const char *src)
 {
     int in_def = 0;  /* 1, если мы внутри определения : ... ; */
-    int op, i;
+    int op, i, ctrl;
 
     f->vm = vm;
     f->nwords = 0;
     f->here = 0;
+    f->nctrl = 0;
     f->pos = src;
     f->line = 1;
     f->error[0] = '\0';
@@ -169,6 +237,8 @@ int forth_compile(Forth *f, VM *vm, const char *src)
         } else if (strcmp(f->token, ";") == 0) {
             if (!in_def)
                 return error(f, "unexpected");
+            if (f->nctrl != 0)
+                return error(f, "unclosed if/begin before");
             vm_emit(vm, OP_RET);
             in_def = 0;
         } else if (strcmp(f->token, "variable") == 0) {
@@ -182,6 +252,9 @@ int forth_compile(Forth *f, VM *vm, const char *src)
             f->here++;
         } else if (!in_def) {
             return error(f, "code outside definition");
+        } else if ((ctrl = compile_control(f)) != 0) {
+            if (ctrl < 0)
+                return -1;
         } else if (is_number(f->token)) {
             vm_emit(vm, OP_PUSH);
             vm_emit(vm, (int32_t)strtol(f->token, NULL, 10));
