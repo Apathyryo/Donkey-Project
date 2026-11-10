@@ -140,6 +140,22 @@ static void test_control_errors(void)
     CHECK(run("if") == -1 && error_has("outside definition"));
 }
 
+static void test_strings(void)
+{
+    /* на стеке адрес и длина, символы лежат в памяти данных */
+    CHECK(run(": main s\" GAME OVER\" ;") == VM_OK && vm.sp == 2
+          && vm.ds[1] == 9 && vm.data[vm.ds[0]] == 'G'
+          && vm.data[vm.ds[0] + 8] == 'R');
+    CHECK(run(": main s\" \" ;") == VM_OK && top() == 0);
+    /* строка не пересекается с переменными */
+    CHECK(run("variable x : main s\" AB\" x ;") == VM_OK
+          && vm.ds[0] == 1 && vm.ds[2] == 0);
+    /* первый символ строки через @ */
+    CHECK(run(": main s\" Hi\" drop @ ;") == VM_OK && top() == 'H');
+    CHECK(run(": main s\" abc ;") == -1 && error_has("unclosed string"));
+    CHECK(run(": main s\" abc\n\" ;") == -1 && error_has("unclosed string"));
+}
+
 static void test_comments(void)
 {
     CHECK(run("\\ comment\n: main ( n -- ) 1 \\ one\n 2 + ;") == VM_OK
@@ -169,6 +185,7 @@ int main(void)
     test_if();
     test_loops();
     test_control_errors();
+    test_strings();
     test_comments();
     test_errors();
 

@@ -208,6 +208,31 @@ static int compile_control(Forth *f)
     return 1;
 }
 
+/* Строка s" текст": символы кладутся в память данных,
+   а в код - команды, которые положат на стек адрес и длину строки */
+static int compile_string(Forth *f)
+{
+    int start = f->here;
+
+    /* пропускаем один пробел после s" */
+    if (*f->pos == ' ')
+        f->pos++;
+    while (*f->pos != '"') {
+        if (*f->pos == '\0' || *f->pos == '\n')
+            return error(f, "unclosed string after");
+        if (f->here >= DATA_SIZE)
+            return error(f, "out of data memory at");
+        f->vm->data[f->here++] = (unsigned char)*f->pos;
+        f->pos++;
+    }
+    f->pos++;  /* закрывающая кавычка */
+    vm_emit(f->vm, OP_PUSH);
+    vm_emit(f->vm, start);
+    vm_emit(f->vm, OP_PUSH);
+    vm_emit(f->vm, f->here - start);
+    return 0;
+}
+
 /* Перевести исходный текст в байт-код.
    Возвращает 0 при успехе, -1 при ошибке (текст ошибки в f->error). */
 int forth_compile(Forth *f, VM *vm, const char *src)
@@ -254,6 +279,9 @@ int forth_compile(Forth *f, VM *vm, const char *src)
             return error(f, "code outside definition");
         } else if ((ctrl = compile_control(f)) != 0) {
             if (ctrl < 0)
+                return -1;
+        } else if (strcmp(f->token, "s\"") == 0) {
+            if (compile_string(f) != 0)
                 return -1;
         } else if (is_number(f->token)) {
             vm_emit(vm, OP_PUSH);
