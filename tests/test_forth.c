@@ -71,6 +71,25 @@ static void test_words(void)
     CHECK(forth_find(&forth, "nothing") == -1);
 }
 
+static void test_variables(void)
+{
+    CHECK(run("variable x : main 5 x ! x @ ;") == VM_OK && top() == 5);
+    /* переменные лежат в соседних ячейках */
+    CHECK(run("variable a variable b : main a b ;") == VM_OK
+          && vm.ds[0] == 0 && vm.ds[1] == 1);
+    CHECK(run("variable n : inc n @ 1 + n ! ; : main inc inc inc n @ ;")
+          == VM_OK && top() == 3);
+    CHECK(run(": main variable x ;") == -1 && error_has("inside definition"));
+    CHECK(run("variable") == -1 && error_has("missing name"));
+}
+
+static void test_chars(void)
+{
+    CHECK(run(": main 'A' ;") == VM_OK && top() == 65);
+    CHECK(run(": main '#' ;") == VM_OK && top() == '#');
+    CHECK(run(": main 'AB' ;") == -1 && error_has("unknown word"));
+}
+
 static void test_comments(void)
 {
     CHECK(run("\\ comment\n: main ( n -- ) 1 \\ one\n 2 + ;") == VM_OK
@@ -95,6 +114,8 @@ int main(void)
     test_numbers();
     test_builtins();
     test_words();
+    test_variables();
+    test_chars();
     test_comments();
     test_errors();
 

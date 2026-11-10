@@ -99,16 +99,46 @@ static int find_builtin(const char *name)
     return -1;
 }
 
-/* Найти слово в словаре, вернуть его адрес или -1.
+/* Является ли слово символом в кавычках, например 'A' */
+static int is_char(const char *s)
+{
+    return s[0] == '\'' && s[1] != '\0' && s[2] == '\'' && s[3] == '\0';
+}
+
+/* Найти слово в словаре, вернуть его номер или -1.
    Поиск идёт с конца, чтобы новое определение заменяло старое. */
-int forth_find(Forth *f, const char *name)
+static int find_word(Forth *f, const char *name)
 {
     int i;
 
     for (i = f->nwords - 1; i >= 0; i--)
         if (strcmp(f->words[i].name, name) == 0)
-            return f->words[i].addr;
+            return i;
     return -1;
+}
+
+/* Найти слово в словаре, вернуть его адрес или -1 */
+int forth_find(Forth *f, const char *name)
+{
+    int i = find_word(f, name);
+
+    if (i < 0)
+        return -1;
+    return f->words[i].addr;
+}
+
+/* Прочитать имя и добавить слово в словарь */
+static int add_word(Forth *f, int addr, int is_var)
+{
+    if (!next_token(f))
+        return error(f, "missing name after");
+    if (f->nwords >= MAX_WORDS)
+        return error(f, "too many words");
+    strcpy(f->words[f->nwords].name, f->token);
+    f->words[f->nwords].addr = addr;
+    f->words[f->nwords].is_var = is_var;
+    f->nwords++;
+    return 0;
 }
 
 /* Перевести исходный текст в байт-код.
@@ -116,10 +146,11 @@ int forth_find(Forth *f, const char *name)
 int forth_compile(Forth *f, VM *vm, const char *src)
 {
     int in_def = 0;  /* 1, если мы внутри определения : ... ; */
-    int op, addr;
+    int op, i;
 
     f->vm = vm;
     f->nwords = 0;
+    f->here = 0;
     f->pos = src;
     f->line = 1;
     f->error[0] = '\0';
@@ -132,29 +163,37 @@ int forth_compile(Forth *f, VM *vm, const char *src)
         } else if (strcmp(f->token, ":") == 0) {
             if (in_def)
                 return error(f, "nested definition");
-            if (!next_token(f))
-                return error(f, "missing name after");
-            if (f->nwords >= MAX_WORDS)
-                return error(f, "too many words");
-            strcpy(f->words[f->nwords].name, f->token);
-            f->words[f->nwords].addr = vm->code_len;
-            f->nwords++;
+            if (add_word(f, vm->code_len, 0) != 0)
+                return -1;
             in_def = 1;
         } else if (strcmp(f->token, ";") == 0) {
             if (!in_def)
                 return error(f, "unexpected");
             vm_emit(vm, OP_RET);
             in_def = 0;
+        } else if (strcmp(f->token, "variable") == 0) {
+            /* переменная - это одна ячейка в памяти данных */
+            if (in_def)
+                return error(f, "not allowed inside definition");
+            if (f->here >= DATA_SIZE)
+                return error(f, "out of data memory at");
+            if (add_word(f, f->here, 1) != 0)
+                return -1;
+            f->here++;
         } else if (!in_def) {
             return error(f, "code outside definition");
         } else if (is_number(f->token)) {
             vm_emit(vm, OP_PUSH);
             vm_emit(vm, (int32_t)strtol(f->token, NULL, 10));
+        } else if (is_char(f->token)) {
+            vm_emit(vm, OP_PUSH);
+            vm_emit(vm, (unsigned char)f->token[1]);
         } else if ((op = find_builtin(f->token)) >= 0) {
             vm_emit(vm, op);
-        } else if ((addr = forth_find(f, f->token)) >= 0) {
-            vm_emit(vm, OP_CALL);
-            vm_emit(vm, addr);
+        } else if ((i = find_word(f, f->token)) >= 0) {
+            /* переменная кладёт на стек свой адрес, слово вызывается */
+            vm_emit(vm, f->words[i].is_var ? OP_PUSH : OP_CALL);
+            vm_emit(vm, f->words[i].addr);
         } else {
             return error(f, "unknown word");
         }
