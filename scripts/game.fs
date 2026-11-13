@@ -4,6 +4,7 @@
 \ три полосы по 3 символа, между ними разметка в столбцах 17 и 21.
 
 variable dist      \ пройденный путь (растёт каждый кадр)
+variable lane      \ полоса игрока: 0, 1 или 2
 variable i         \ счётчик для циклов
 variable lx        \ столбец для vline и dashes
 variable lch       \ символ для vline
@@ -42,10 +43,34 @@ variable lch       \ символ для vline
     17 dashes
     21 dashes ;
 
+\ столбец середины полосы n: 15, 19 или 23
+: lane-x ( n -- x ) 4 * 15 + ;
+
+\ верхняя строка машины игрока
+: car-y 18 ;
+
+\ машина игрока 3x3:  /^\
+\                     [#]
+\                     o-o
+: player
+    lane @ lane-x 1 -
+    dup car-y s" /^\" text
+    dup car-y 1 + s" [#]" text
+    car-y 2 + s" o-o" text ;
+
+\ стрелки влево и вправо меняют полосу
+: control
+    key
+    dup 1 = lane @ 0 > and if lane @ 1 - lane ! then
+    2 = lane @ 2 < and if lane @ 1 + lane ! then ;
+
 : init
-    0 dist ! ;
+    0 dist !
+    1 lane ! ;
 
 : tick
+    control
     dist @ 1 + dist !
     cls
-    road ;
+    road
+    player ;
