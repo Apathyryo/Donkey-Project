@@ -64,6 +64,15 @@ variable lch       \ символ для vline
     dup 1 = lane @ 0 > and if lane @ 1 - lane ! then
     2 = lane @ 2 < and if lane @ 1 + lane ! then ;
 
+\ справа от трассы - название и пройденный путь,
+\ слева - подсказка по клавишам
+: panel
+    28 1 s" DETOUR" text
+    28 3 s" DIST" text
+    28 4 dist @ num
+    0 19 s" <- -> lane" text
+    0 20 s" Esc   exit" text ;
+
 : init
     0 dist !
     1 lane ! ;
@@ -73,4 +82,5 @@ variable lch       \ символ для vline
     dist @ 1 + dist !
     cls
     road
-    player ;
+    player
+    panel ;
