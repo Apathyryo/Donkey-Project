@@ -1,3 +1,4 @@
+#include <stddef.h>
 #include "vm.h"
 
 void vm_init(VM *vm)
@@ -11,6 +12,7 @@ void vm_init(VM *vm)
     vm->rp = 0;
     vm->pc = 0;
     vm->err = VM_OK;
+    vm->sys = NULL;
 }
 
 /* Добавить ячейку в конец кода */
@@ -190,6 +192,16 @@ int vm_run(VM *vm, int addr)
             if (vm->rp == 0)
                 return vm->err;
             vm->pc = vm->rs[--vm->rp];
+            break;
+        case OP_SYS:
+            a = fetch(vm);
+            if (vm->err != VM_OK)
+                break;
+            if (vm->sys == NULL) {
+                vm->err = VM_ERR_BAD_OP;
+                break;
+            }
+            vm->sys(vm, a);
             break;
         default:
             vm->err = VM_ERR_BAD_OP;

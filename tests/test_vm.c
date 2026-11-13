@@ -106,6 +106,27 @@ static void test_call(void)
     CHECK(RUN(ret) == VM_OK && vm.sp == 1 && top() == 1);
 }
 
+/* Тестовый системный вызов: кладёт на стек номер вызова * 10 */
+static void fake_sys(VM *v, int n)
+{
+    vm_push(v, n * 10);
+}
+
+static void test_sys(void)
+{
+    int32_t prog[] = { OP_SYS, 3, OP_HALT };
+    int i;
+
+    /* без функции ядра системный вызов - ошибка */
+    CHECK(RUN(prog) == VM_ERR_BAD_OP);
+
+    vm_init(&vm);
+    vm.sys = fake_sys;
+    for (i = 0; i < 3; i++)
+        vm_emit(&vm, prog[i]);
+    CHECK(vm_run(&vm, 0) == VM_OK && top() == 30);
+}
+
 static void test_errors(void)
 {
     int32_t underflow[] = { OP_ADD, OP_HALT };
@@ -139,6 +160,7 @@ int main(void)
     test_memory();
     test_jumps();
     test_call();
+    test_sys();
     test_errors();
 
     printf("vm: %d tests, %d failed\n", total, failed);
