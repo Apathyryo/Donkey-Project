@@ -1,20 +1,51 @@
-\ Проверка ядра: символ @ двигается стрелками
-\ Коды клавиш: 1 - влево, 2 - вправо, 3 - вверх, 4 - вниз
+\ Объезд - игровая логика
+\ Ядро вызывает init один раз и tick каждый кадр.
+\ Экран 40x22. Трасса: обочины в столбцах 13 и 25,
+\ три полосы по 3 символа, между ними разметка в столбцах 17 и 21.
 
-variable x
-variable y
+variable dist      \ пройденный путь (растёт каждый кадр)
+variable i         \ счётчик для циклов
+variable lx        \ столбец для vline и dashes
+variable lch       \ символ для vline
 
-: init 20 x ! 10 y ! ;
+: road-left 13 ;
+: road-right 25 ;
 
-: move ( key -- )
-    dup 1 = if x @ 1 - x ! then
-    dup 2 = if x @ 1 + x ! then
-    dup 3 = if y @ 1 - y ! then
-    4 = if y @ 1 + y ! then ;
+\ сплошная линия символа ch в столбце x на всю высоту экрана
+: vline ( x ch -- )
+    lch ! lx !
+    0 i !
+    begin
+        lx @ i @ lch @ put
+        i @ 1 + i !
+        i @ 21 >
+    until ;
+
+\ рисовать ли штрих разметки в строке y:
+\ штрихи по 2 строки через 2, сдвигаются вниз вместе с dist
+: dash? ( y -- f )
+    dist @ 4 mod - 4 + 4 mod 2 < ;
+
+\ прерывистая разметка в столбце x
+: dashes ( x -- )
+    lx !
+    0 i !
+    begin
+        i @ dash? if lx @ i @ '|' put then
+        i @ 1 + i !
+        i @ 21 >
+    until ;
+
+: road
+    road-left '#' vline
+    road-right '#' vline
+    17 dashes
+    21 dashes ;
+
+: init
+    0 dist ! ;
 
 : tick
-    key move
+    dist @ 1 + dist !
     cls
-    0 0 s" Arrows - move, Esc - exit" text
-    0 1 s" x =" text 4 1 x @ num
-    x @ y @ '@' put ;
+    road ;
