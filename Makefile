@@ -5,24 +5,27 @@
 CC = gcc
 CFLAGS = -std=c99 -Wall -Wextra -O2
 
-SRC = src/main.c src/vm.c src/forth.c
-HDR = src/vm.h src/forth.h
+SRC = src/main.c src/core.c src/vm.c src/forth.c
+HDR = src/vm.h src/forth.h src/core.h src/platform.h
 
+# для каждой ОС свой файл платформы
 ifeq ($(OS),Windows_NT)
     SHELL = cmd.exe
     EXE = .exe
     RM = del /Q
     RUN =
+    PLAT = src/plat_win.c
 else
     EXE =
     RM = rm -f
     RUN = ./
+    PLAT = src/plat_unix.c
 endif
 
 all: game$(EXE)
 
-game$(EXE): $(SRC) $(HDR)
-	$(CC) $(CFLAGS) -o $@ $(SRC)
+game$(EXE): $(SRC) $(PLAT) $(HDR)
+	$(CC) $(CFLAGS) -o $@ $(SRC) $(PLAT)
 
 # Модульные тесты
 test_vm$(EXE): tests/test_vm.c tests/check.h src/vm.c src/vm.h

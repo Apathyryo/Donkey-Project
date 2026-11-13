@@ -28,6 +28,11 @@ static const struct {
     { NULL, 0 }
 };
 
+/* Системные слова, порядок совпадает с номерами SYS_... в vm.h */
+static const char *sys_words[SYS_COUNT] = {
+    "cls", "put", "text", "num", "key", "rnd"
+};
+
 static int is_space(char c)
 {
     return c == ' ' || c == '\t' || c == '\r' || c == '\n';
@@ -96,6 +101,16 @@ static int find_builtin(const char *name)
     for (i = 0; builtins[i].name != NULL; i++)
         if (strcmp(builtins[i].name, name) == 0)
             return builtins[i].op;
+    return -1;
+}
+
+static int find_sys(const char *name)
+{
+    int i;
+
+    for (i = 0; i < SYS_COUNT; i++)
+        if (strcmp(sys_words[i], name) == 0)
+            return i;
     return -1;
 }
 
@@ -290,6 +305,9 @@ int forth_compile(Forth *f, VM *vm, const char *src)
             vm_emit(vm, OP_PUSH);
             vm_emit(vm, (unsigned char)f->token[1]);
         } else if ((op = find_builtin(f->token)) >= 0) {
+            vm_emit(vm, op);
+        } else if ((op = find_sys(f->token)) >= 0) {
+            vm_emit(vm, OP_SYS);
             vm_emit(vm, op);
         } else if ((i = find_word(f, f->token)) >= 0) {
             /* переменная кладёт на стек свой адрес, слово вызывается */

@@ -1,36 +1,41 @@
 #include <stdio.h>
-#include "vm.h"
-#include "forth.h"
+#include <stdlib.h>
+#include <time.h>
+#include "core.h"
+#include "platform.h"
 
-static VM vm;
-static Forth forth;
+#define FRAME_MS 50   /* 20 кадров в секунду */
 
-/* Пока что проверяем транслятор на небольшой программе */
-static const char *demo =
-    "\\ квадрат числа\n"
-    ": square ( n -- n*n ) dup * ;\n"
-    ": main 5 square 1 + ;\n";
-
-int main(void)
+int main(int argc, char **argv)
 {
-    int addr, err;
+    const char *path = "scripts/game.fs";
+    int key;
 
-    vm_init(&vm);
-    if (forth_compile(&forth, &vm, demo) != 0) {
-        printf("Compile error: %s\n", forth.error);
-        return 1;
-    }
-    addr = forth_find(&forth, "main");
-    if (addr < 0) {
-        printf("Word 'main' not found\n");
+    if (argc > 1)
+        path = argv[1];
+    srand((unsigned)time(NULL));
+    if (core_load(path) != 0) {
+        printf("%s\n", core_error());
         return 1;
     }
 
-    err = vm_run(&vm, addr);
-    if (err != VM_OK) {
-        printf("VM error: %s\n", vm_error_str(err));
+    plat_init();
+    if (core_init() == 0) {
+        for (;;) {
+            key = plat_key();
+            if (key == KEY_ESC)
+                break;
+            if (core_tick(key) != 0)
+                break;
+            plat_draw(core_screen());
+            plat_sleep(FRAME_MS);
+        }
+    }
+    plat_done();
+
+    if (core_error()[0] != '\0') {
+        printf("%s\n", core_error());
         return 1;
     }
-    printf("Result: %d\n", (int)vm_pop(&vm));
     return 0;
 }
