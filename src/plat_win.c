@@ -6,11 +6,17 @@
 #include "platform.h"
 #include "core.h"
 
+/* в старых заголовках MinGW этой константы может не быть */
+#ifndef ENABLE_VIRTUAL_TERMINAL_PROCESSING
+#define ENABLE_VIRTUAL_TERMINAL_PROCESSING 0x0004
+#endif
+
 static HANDLE out;
 
 void plat_init(void)
 {
     CONSOLE_CURSOR_INFO cursor;
+    DWORD mode;
 
     out = GetStdHandle(STD_OUTPUT_HANDLE);
     system("cls");
@@ -18,6 +24,9 @@ void plat_init(void)
     GetConsoleCursorInfo(out, &cursor);
     cursor.bVisible = FALSE;
     SetConsoleCursorInfo(out, &cursor);
+    /* включить escape-коды цвета, как в терминале Linux (Windows 10+) */
+    GetConsoleMode(out, &mode);
+    SetConsoleMode(out, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
 }
 
 void plat_done(void)
@@ -27,7 +36,7 @@ void plat_done(void)
     GetConsoleCursorInfo(out, &cursor);
     cursor.bVisible = TRUE;
     SetConsoleCursorInfo(out, &cursor);
-    printf("\n");
+    printf("\033[0m\n");
 }
 
 int plat_key(void)
@@ -52,16 +61,23 @@ int plat_key(void)
 
 void plat_draw(const char *screen, const char *colors)
 {
-    (void)colors;  /* цвета в консоли Windows пока не выводим */
     COORD pos = { 0, 0 };
-    int y;
+    int i, y, last = -1;
 
     /* курсор в левый верхний угол, затем выводим строки экрана */
     SetConsoleCursorPosition(out, pos);
     for (y = 0; y < SCREEN_H; y++) {
-        fwrite(screen + y * SCREEN_W, 1, SCREEN_W, stdout);
+        for (i = y * SCREEN_W; i < (y + 1) * SCREEN_W; i++) {
+            /* код цвета \033[9Xm выводим, только когда цвет меняется */
+            if (colors[i] != last) {
+                last = colors[i];
+                printf("\033[9%dm", last);
+            }
+            putchar(screen[i]);
+        }
         putchar('\n');
     }
+    printf("\033[0m");
     fflush(stdout);
 }
 
