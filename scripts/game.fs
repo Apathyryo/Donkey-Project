@@ -204,7 +204,15 @@ variable ended     \ 1 - игра окончена
 
 : game-over-screen
     14 9 s"  GAME OVER " text
-    14 10 s" R - restart" text ;
+    14 10 s" Space or R " text
+    14 11 s" to restart " text ;
+
+\ начать заново: пробел (32) или R; пробел работает в любой раскладке,
+\ а R в русской раскладке приходит как другая буква
+: restart? ( key -- f )
+    dup 32 =
+    over 'r' = or
+    swap 'R' = or ;
 
 : init
     0 ended !
@@ -216,10 +224,10 @@ variable ended     \ 1 - игра окончена
     60 fuel !
     clear-objects ;
 
-\ после конца игры ждём R, иначе - обычный кадр
+\ после конца игры ждём пробел или R, иначе - обычный кадр
 : tick
     ended @ if
-        key dup 'r' = swap 'R' = or if init then
+        key restart? if init then
     else
         control
         frame @ 1 + frame !
