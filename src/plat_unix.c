@@ -51,15 +51,23 @@ int plat_key(void)
     return KEY_ESC;
 }
 
-void plat_draw(const char *screen)
+void plat_draw(const char *screen, const char *colors)
 {
-    int y;
+    int i, y, last = -1;
 
     printf("\033[H");  /* курсор в левый верхний угол */
     for (y = 0; y < SCREEN_H; y++) {
-        fwrite(screen + y * SCREEN_W, 1, SCREEN_W, stdout);
+        for (i = y * SCREEN_W; i < (y + 1) * SCREEN_W; i++) {
+            /* код цвета \033[9Xm выводим, только когда цвет меняется */
+            if (colors[i] != last) {
+                last = colors[i];
+                printf("\033[9%dm", last);
+            }
+            putchar(screen[i]);
+        }
         putchar('\n');
     }
+    printf("\033[0m");  /* вернуть обычный цвет */
     fflush(stdout);
 }
 

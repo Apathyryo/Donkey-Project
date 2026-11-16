@@ -23,7 +23,7 @@ static void frame(void)
         running = 0;
         return;
     }
-    plat_draw(core_screen());
+    plat_draw(core_screen(), core_colors());
 }
 
 int main(int argc, char **argv)

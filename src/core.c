@@ -9,15 +9,26 @@ static VM vm;
 static Forth forth;
 static char src[65536];                   /* текст скрипта */
 static char screen[SCREEN_H * SCREEN_W];  /* экран: строки подряд */
+static char colors[SCREEN_H * SCREEN_W];  /* цвет каждой клетки экрана */
+static int color = COLOR_WHITE;           /* текущий цвет для put и text */
 static char error[200];                   /* текст последней ошибки */
 static int key;                           /* клавиша, нажатая в этом кадре */
 static int init_addr, tick_addr;          /* адреса слов init и tick */
 
-/* Поставить символ на экран, если координаты внутри экрана */
+/* Поставить символ текущего цвета, если координаты внутри экрана */
 static void put(int x, int y, int ch)
 {
-    if (x >= 0 && x < SCREEN_W && y >= 0 && y < SCREEN_H)
+    if (x >= 0 && x < SCREEN_W && y >= 0 && y < SCREEN_H) {
         screen[y * SCREEN_W + x] = (char)ch;
+        colors[y * SCREEN_W + x] = (char)color;
+    }
+}
+
+static void clear_screen(void)
+{
+    memset(screen, ' ', sizeof(screen));
+    memset(colors, COLOR_WHITE, sizeof(colors));
+    color = COLOR_WHITE;
 }
 
 /* Выполнить системный вызов номер n */
@@ -28,7 +39,12 @@ static void sys(VM *v, int n)
 
     switch (n) {
     case SYS_CLS:
-        memset(screen, ' ', sizeof(screen));
+        clear_screen();
+        break;
+    case SYS_COLOR:
+        a = vm_pop(v);
+        if (a >= 0 && a < COLOR_COUNT)
+            color = a;
         break;
     case SYS_PUT:
         a = vm_pop(v);
@@ -94,7 +110,7 @@ int core_load(const char *path)
         sprintf(error, "%s: words init and tick are required", path);
         return -1;
     }
-    memset(screen, ' ', sizeof(screen));
+    clear_screen();
     return 0;
 }
 
@@ -124,6 +140,11 @@ int core_tick(int k)
 const char *core_screen(void)
 {
     return screen;
+}
+
+const char *core_colors(void)
+{
+    return colors;
 }
 
 const char *core_error(void)

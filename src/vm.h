@@ -46,6 +46,7 @@ enum {
     SYS_NUM,   /* x y n -- , вывести число */
     SYS_KEY,   /* -- k , нажатая клавиша или 0 */
     SYS_RND,   /* n -- r , случайное число от 0 до n-1 */
+    SYS_COLOR, /* c -- , цвет для следующих put, text, num */
     SYS_COUNT
 };
 

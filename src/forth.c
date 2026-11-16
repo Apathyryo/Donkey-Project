@@ -30,7 +30,7 @@ static const struct {
 
 /* Системные слова, порядок совпадает с номерами SYS_... в vm.h */
 static const char *sys_words[SYS_COUNT] = {
-    "cls", "put", "text", "num", "key", "rnd"
+    "cls", "put", "text", "num", "key", "rnd", "color"
 };
 
 static int is_space(char c)

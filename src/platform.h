@@ -13,7 +13,8 @@
 void plat_init(void);
 void plat_done(void);
 int plat_key(void);                   /* нажатая клавиша или 0 */
-void plat_draw(const char *screen);   /* вывести экран SCREEN_W x SCREEN_H */
+/* вывести экран SCREEN_W x SCREEN_H; colors - цвет каждой клетки (COLOR_...) */
+void plat_draw(const char *screen, const char *colors);
 void plat_sleep(int ms);
 
 #endif

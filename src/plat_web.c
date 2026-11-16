@@ -46,8 +46,9 @@ int plat_key(void)
     return k;
 }
 
-void plat_draw(const char *screen)
+void plat_draw(const char *screen, const char *colors)
 {
+    (void)colors;  /* цвета в браузере пока не выводим */
     static char text[SCREEN_H * (SCREEN_W + 1) + 1];
     int y, n = 0;
 

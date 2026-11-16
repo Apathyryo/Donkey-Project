@@ -50,8 +50,9 @@ int plat_key(void)
     return c;
 }
 
-void plat_draw(const char *screen)
+void plat_draw(const char *screen, const char *colors)
 {
+    (void)colors;  /* цвета в консоли Windows пока не выводим */
     COORD pos = { 0, 0 };
     int y;
 
