@@ -3,11 +3,20 @@
 \ Экран 40x22. Трасса: обочины в столбцах 13 и 25,
 \ три полосы по 3 символа, между ними разметка в столбцах 17 и 21.
 
-variable dist      \ пройденный путь (растёт каждый кадр)
+variable dist      \ пройденный путь (растёт на каждом шаге)
 variable lane      \ полоса игрока: 0, 1 или 2
-variable i         \ счётчик для циклов
+variable frame     \ номер кадра
+variable i         \ счётчик для циклов рисования
+variable j         \ счётчик для циклов по объектам
 variable lx        \ столбец для vline и dashes
 variable lch       \ символ для vline
+
+\ встречные объекты: у каждого полоса, строка и вид
+\ вид: 0 - объекта нет, 1 - машина, 2 - камень
+array ol 6
+array oy 6
+array ok 6
+variable gap       \ сколько шагов до появления следующего объекта
 
 : road-left 13 ;
 : road-right 25 ;
@@ -64,6 +73,73 @@ variable lch       \ символ для vline
     dup 1 = lane @ 0 > and if lane @ 1 - lane ! then
     2 = lane @ 2 < and if lane @ 1 + lane ! then ;
 
+\ ----- встречные объекты -----
+
+: max-obj 6 ;
+
+\ адреса полей объекта n
+: olane ( n -- addr ) ol + ;
+: row ( n -- addr ) oy + ;
+: kind ( n -- addr ) ok + ;
+
+\ перейти к следующему объекту; 1, если объекты закончились
+: next-j ( -- f )
+    j @ 1 + j !
+    j @ max-obj < not ;
+
+: clear-objects
+    0 j !
+    begin 0 j @ kind ! next-j until ;
+
+\ занять свободный объект: машина или камень в случайной полосе над экраном
+: spawn
+    0 j !
+    begin
+        j @ kind @ 0 = if
+            2 rnd 1 + j @ kind !
+            3 rnd j @ olane !
+            -1 j @ row !
+            max-obj j !      \ нашли свободный - выходим из цикла
+        then
+        next-j
+    until ;
+
+\ сдвинуть объекты на строку вниз, ушедшие за экран убрать
+: move-objects
+    0 j !
+    begin
+        j @ kind @ if
+            j @ row @ 1 + j @ row !
+            j @ row @ 21 > if 0 j @ kind ! then
+        then
+        next-j
+    until ;
+
+\ машина [V], камень (@)
+: draw-object ( n -- )
+    dup olane @ lane-x 1 - swap
+    dup row @ swap
+    kind @ 1 = if s" [V]" else s" (@)" then
+    text ;
+
+: objects
+    0 j !
+    begin
+        j @ kind @ if j @ draw-object then
+        next-j
+    until ;
+
+\ один шаг мира: путь растёт, объекты едут вниз,
+\ через 4-6 шагов появляется новый объект
+: step
+    dist @ 1 + dist !
+    move-objects
+    gap @ 1 - gap !
+    gap @ 0 > not if
+        spawn
+        3 rnd 4 + gap !
+    then ;
+
 \ справа от трассы - название и пройденный путь,
 \ слева - подсказка по клавишам
 : panel
@@ -75,12 +151,17 @@ variable lch       \ символ для vline
 
 : init
     0 dist !
-    1 lane ! ;
+    1 lane !
+    0 frame !
+    3 gap !
+    clear-objects ;
 
 : tick
     control
-    dist @ 1 + dist !
+    frame @ 1 + frame !
+    frame @ 3 mod 0 = if step then
     cls
     road
+    objects
     player
     panel ;
