@@ -83,6 +83,18 @@ static void test_variables(void)
     CHECK(run("variable") == -1 && error_has("missing name"));
 }
 
+static void test_arrays(void)
+{
+    /* a[2] = 7, переменная v лежит сразу после массива */
+    CHECK(run("array a 3 variable v : main 7 a 2 + ! a 2 + @ v ;") == VM_OK
+          && vm.ds[0] == 7 && vm.ds[1] == 3);
+    CHECK(run("array a") == -1 && error_has("size expected"));
+    CHECK(run("array a x") == -1 && error_has("size expected"));
+    CHECK(run("array a 0") == -1 && error_has("bad array size"));
+    CHECK(run("array a 99999") == -1 && error_has("bad array size"));
+    CHECK(run(": main array a 3 ;") == -1 && error_has("inside definition"));
+}
+
 static void test_chars(void)
 {
     CHECK(run(": main 'A' ;") == VM_OK && top() == 65);
@@ -181,6 +193,7 @@ int main(void)
     test_builtins();
     test_words();
     test_variables();
+    test_arrays();
     test_chars();
     test_if();
     test_loops();

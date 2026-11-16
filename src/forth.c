@@ -290,6 +290,19 @@ int forth_compile(Forth *f, VM *vm, const char *src)
             if (add_word(f, f->here, 1) != 0)
                 return -1;
             f->here++;
+        } else if (strcmp(f->token, "array") == 0) {
+            /* массив: array имя N - N ячеек подряд,
+               имя кладёт на стек адрес первой ячейки */
+            if (in_def)
+                return error(f, "not allowed inside definition");
+            if (add_word(f, f->here, 1) != 0)
+                return -1;
+            if (!next_token(f) || !is_number(f->token))
+                return error(f, "array size expected at");
+            i = (int)strtol(f->token, NULL, 10);
+            if (i <= 0 || i > DATA_SIZE - f->here)
+                return error(f, "bad array size");
+            f->here += i;
         } else if (!in_def) {
             return error(f, "code outside definition");
         } else if ((ctrl = compile_control(f)) != 0) {
