@@ -25,7 +25,9 @@
 1. **Платформа** — всё, что зависит от ОС: вывод экрана, клавиатура,
    пауза между кадрами (`src/platform.h`).
    - `src/plat_unix.c` — Linux: escape-коды терминала и `termios`;
-   - `src/plat_win.c` — Windows: консоль, `conio.h`.
+   - `src/plat_win.c` — Windows: консоль, `conio.h`;
+   - `src/plat_web.c` — браузер (Emscripten, WebAssembly): экран — текст
+     в элементе `<pre>`, клавиши — события браузера.
 2. **Ядро** на C, не зависит от ОС:
    - `src/vm.c` — стековая виртуальная машина;
    - `src/forth.c` — транслятор Forth-подобного языка в байт-код ВМ;
@@ -119,6 +121,16 @@ Windows (MinGW):
 
 По умолчанию загружается `scripts/game.fs`, другой скрипт можно передать
 аргументом: `./game myscript.fs`. Выход — Esc.
+
+## Веб-версия
+
+Нужен [Emscripten](https://emscripten.org/). Сборка:
+
+    make web
+    mingw32-make web EMCC=D:/Tools/emsdk/upstream/emscripten/emcc.exe   # Windows
+
+Получается один файл `game.html` (скрипт игры встроен внутрь),
+его можно открыть в браузере двойным щелчком.
 
 ## Тесты
 
