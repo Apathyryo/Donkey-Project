@@ -1,5 +1,6 @@
 /* Платформа Web (Emscripten): экран - текст в элементе <pre> страницы,
    клавиши - события клавиатуры браузера */
+#include <stdio.h>
 #include <string.h>
 #include <emscripten.h>
 #include <emscripten/html5.h>
@@ -46,22 +47,43 @@ int plat_key(void)
     return k;
 }
 
+/* Цвета COLOR_... для браузера */
+static const char *css[COLOR_COUNT] = {
+    "#888", "#f55", "#5d5", "#fd5", "#68f", "#f6f", "#5ee", "#ddd"
+};
+
 void plat_draw(const char *screen, const char *colors)
 {
-    (void)colors;  /* цвета в браузере пока не выводим */
-    static char text[SCREEN_H * (SCREEN_W + 1) + 1];
-    int y, n = 0;
+    /* с запасом: на каждую клетку может прийти свой <span> */
+    static char html[SCREEN_H * SCREEN_W * 40];
+    int i, y, n = 0, last = -1;
 
-    /* склеиваем строки экрана через перевод строки */
+    /* строим HTML: кусок одного цвета - в своём <span> */
     for (y = 0; y < SCREEN_H; y++) {
-        memcpy(text + n, screen + y * SCREEN_W, SCREEN_W);
-        n += SCREEN_W;
-        text[n++] = '\n';
+        for (i = y * SCREEN_W; i < (y + 1) * SCREEN_W; i++) {
+            if (colors[i] != last) {
+                if (last >= 0)
+                    n += sprintf(html + n, "</span>");
+                last = colors[i];
+                n += sprintf(html + n, "<span style=\"color:%s\">", css[last]);
+            }
+            /* < > & в HTML - служебные символы */
+            if (screen[i] == '<')
+                n += sprintf(html + n, "&lt;");
+            else if (screen[i] == '>')
+                n += sprintf(html + n, "&gt;");
+            else if (screen[i] == '&')
+                n += sprintf(html + n, "&amp;");
+            else
+                html[n++] = screen[i];
+        }
+        html[n++] = '\n';
     }
-    text[n] = '\0';
+    n += sprintf(html + n, "</span>");
+    html[n] = '\0';
     EM_ASM({
-        document.getElementById('screen').textContent = UTF8ToString($0);
-    }, text);
+        document.getElementById('screen').innerHTML = UTF8ToString($0);
+    }, html);
 }
 
 /* В браузере паузу между кадрами делает сам браузер */
