@@ -12,6 +12,7 @@ void vm_init(VM *vm)
     vm->rp = 0;
     vm->pc = 0;
     vm->err = VM_OK;
+    vm->max_steps = MAX_STEPS;
     vm->sys = NULL;
 }
 
@@ -58,12 +59,19 @@ static int32_t fetch(VM *vm)
 int vm_run(VM *vm, int addr)
 {
     int32_t a, b;
+    long steps = 0;
 
     vm->pc = addr;
     vm->rp = 0;
     vm->err = VM_OK;
     while (vm->err == VM_OK) {
-        int32_t op = fetch(vm);
+        int32_t op;
+
+        if (++steps > vm->max_steps) {
+            vm->err = VM_ERR_STEPS;
+            break;
+        }
+        op = fetch(vm);
         switch (op) {
         case OP_HALT:
             return vm->err;
@@ -220,6 +228,7 @@ const char *vm_error_str(int err)
     case VM_ERR_DIV_ZERO:  return "division by zero";
     case VM_ERR_BAD_OP:    return "bad opcode";
     case VM_ERR_BAD_ADDR:  return "bad address";
+    case VM_ERR_STEPS:     return "too many steps";
     }
     return "unknown error";
 }

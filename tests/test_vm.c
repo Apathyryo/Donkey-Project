@@ -140,6 +140,8 @@ static void test_errors(void)
     int32_t overflow[] = { OP_PUSH, 1, OP_JMP, 0 };
     /* бесконечная рекурсия */
     int32_t recursion[] = { OP_CALL, 0 };
+    /* бесконечный цикл */
+    int32_t forever[] = { OP_JMP, 0 };
 
     CHECK(RUN(underflow) == VM_ERR_UNDERFLOW);
     CHECK(RUN(div_zero) == VM_ERR_DIV_ZERO);
@@ -150,6 +152,7 @@ static void test_errors(void)
     CHECK(RUN(no_halt) == VM_ERR_BAD_ADDR);
     CHECK(RUN(overflow) == VM_ERR_OVERFLOW);
     CHECK(RUN(recursion) == VM_ERR_OVERFLOW);
+    CHECK(RUN(forever) == VM_ERR_STEPS);
 }
 
 int main(void)

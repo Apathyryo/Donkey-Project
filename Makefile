@@ -38,6 +38,16 @@ test: test_vm$(EXE) test_forth$(EXE)
 	$(RUN)test_vm$(EXE)
 	$(RUN)test_forth$(EXE)
 
+# Фаззинг. В Linux лучше запускать с проверкой памяти:
+# make fuzz FUZZFLAGS="-g -fsanitize=address,undefined -fno-sanitize-recover=all"
+FUZZFLAGS =
+
+run_fuzz$(EXE): tests/fuzz.c src/vm.c src/forth.c $(HDR)
+	$(CC) $(CFLAGS) $(FUZZFLAGS) -o $@ tests/fuzz.c src/vm.c src/forth.c
+
+fuzz: run_fuzz$(EXE)
+	$(RUN)run_fuzz$(EXE)
+
 # Веб-версия: один файл game.html, скрипт игры встраивается внутрь.
 # Путь к компилятору можно задать: make web EMCC=путь/к/emcc
 EMCC = emcc
@@ -48,6 +58,6 @@ game.html: $(SRC) src/plat_web.c $(HDR) src/shell.html scripts/game.fs
 	$(EMCC) -O2 -o game.html $(SRC) src/plat_web.c --shell-file src/shell.html --embed-file scripts/game.fs -sSINGLE_FILE=1
 
 clean:
-	-$(RM) game$(EXE) test_vm$(EXE) test_forth$(EXE) game.html
+	-$(RM) game$(EXE) test_vm$(EXE) test_forth$(EXE) run_fuzz$(EXE) game.html
 
-.PHONY: all test web clean
+.PHONY: all test fuzz web clean
