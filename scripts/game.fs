@@ -17,6 +17,7 @@ array ol 6
 array oy 6
 array ok 6
 variable gap       \ сколько шагов до появления следующего объекта
+variable lives     \ жизни
 
 : road-left 13 ;
 : road-right 25 ;
@@ -129,6 +130,27 @@ variable gap       \ сколько шагов до появления след�
         next-j
     until ;
 
+\ объект n в полосе игрока и на уровне его машины (строки car-y..car-y+2)?
+: hit? ( n -- f )
+    dup olane @ lane @ =
+    swap row @
+    dup car-y 1 - >
+    swap car-y 3 + <
+    and and ;
+
+\ столкновение с машиной или камнем: минус жизнь, объект пропадает
+: collide
+    0 j !
+    begin
+        j @ kind @ if
+            j @ hit? if
+                0 j @ kind !
+                lives @ 1 - lives !
+            then
+        then
+        next-j
+    until ;
+
 \ один шаг мира: путь растёт, объекты едут вниз,
 \ через 4-6 шагов появляется новый объект
 : step
@@ -146,6 +168,8 @@ variable gap       \ сколько шагов до появления след�
     28 1 s" DETOUR" text
     28 3 s" DIST" text
     28 4 dist @ num
+    28 6 s" LIVES" text
+    28 7 lives @ num
     0 19 s" <- -> lane" text
     0 20 s" Esc   exit" text ;
 
@@ -154,12 +178,14 @@ variable gap       \ сколько шагов до появления след�
     1 lane !
     0 frame !
     3 gap !
+    3 lives !
     clear-objects ;
 
 : tick
     control
     frame @ 1 + frame !
     frame @ 3 mod 0 = if step then
+    collide
     cls
     road
     objects
