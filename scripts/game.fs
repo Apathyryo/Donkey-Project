@@ -24,6 +24,15 @@ variable ended     \ 1 - игра окончена
 : road-left 13 ;
 : road-right 25 ;
 
+\ цвета для слова color (как COLOR_... в ядре)
+: grey 0 ;
+: red 1 ;
+: green 2 ;
+: yellow 3 ;
+: blue 4 ;
+: cyan 6 ;
+: white 7 ;
+
 \ сплошная линия символа ch в столбце x на всю высоту экрана
 : vline ( x ch -- )
     lch ! lx !
@@ -39,21 +48,27 @@ variable ended     \ 1 - игра окончена
 : dash? ( y -- f )
     dist @ 4 mod - 4 + 4 mod 2 < ;
 
-\ прерывистая разметка в столбце x
-: dashes ( x -- )
-    lx !
+\ прерывистая линия символа ch в столбце x
+: dashes ( x ch -- )
+    lch ! lx !
     0 i !
     begin
-        i @ dash? if lx @ i @ '|' put then
+        i @ dash? if lx @ i @ lch @ put then
         i @ 1 + i !
         i @ 21 >
     until ;
 
+\ серые обочины, белая разметка, зелёная трава за обочинами
 : road
+    grey color
     road-left '#' vline
     road-right '#' vline
-    17 dashes
-    21 dashes ;
+    white color
+    17 '|' dashes
+    21 '|' dashes
+    green color
+    11 '"' dashes
+    27 '"' dashes ;
 
 \ столбец середины полосы n: 15, 19 или 23
 : lane-x ( n -- x ) 4 * 15 + ;
@@ -65,6 +80,7 @@ variable ended     \ 1 - игра окончена
 \                     [#]
 \                     o-o
 : player
+    cyan color
     lane @ lane-x 1 -
     dup car-y s" /^\" text
     dup car-y 1 + s" [#]" text
@@ -124,8 +140,8 @@ variable ended     \ 1 - игра окончена
     dup olane @ lane-x 1 - swap
     dup row @ swap
     kind @
-    dup 1 = if drop s" [V]" else
-    2 = if s" (@)" else s" [F]" then then
+    dup 1 = if drop red color s" [V]" else
+    2 = if blue color s" (@)" else yellow color s" [F]" then then
     text ;
 
 : objects
@@ -186,15 +202,19 @@ variable ended     \ 1 - игра окончена
 \ справа от трассы - название и пройденный путь,
 \ слева - подсказка по клавишам
 : panel
-    28 1 s" DETOUR" text
-    28 3 s" DIST" text
-    28 4 dist @ num
-    28 6 s" LIVES" text
-    28 7 lives @ num
-    28 9 s" FUEL" text
-    28 10 fuel @ num
-    28 12 s" SPEED" text
-    28 13 speed num
+    cyan color
+    30 1 s" DETOUR" text
+    white color
+    30 3 s" DIST" text
+    30 6 s" LIVES" text
+    30 9 s" FUEL" text
+    30 12 s" SPEED" text
+    yellow color
+    30 4 dist @ num
+    30 7 lives @ num
+    30 10 fuel @ num
+    30 13 speed num
+    grey color
     0 19 s" <- -> lane" text
     0 20 s" Esc   exit" text ;
 
@@ -203,7 +223,9 @@ variable ended     \ 1 - игра окончена
     lives @ 1 < fuel @ 1 < or if 1 ended ! then ;
 
 : game-over-screen
+    red color
     14 9 s"  GAME OVER " text
+    white color
     14 10 s" Space or R " text
     14 11 s" to restart " text ;
 
