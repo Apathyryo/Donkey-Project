@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
 #include "core.h"
 #include "platform.h"
 
@@ -37,10 +40,16 @@ int main(int argc, char **argv)
 
     plat_init();
     if (core_init() == 0) {
+#ifdef __EMSCRIPTEN__
+        /* в браузере нельзя крутить свой цикл:
+           браузер сам вызывает frame 20 раз в секунду */
+        emscripten_set_main_loop(frame, 1000 / FRAME_MS, 1);
+#else
         while (running) {
             frame();
             plat_sleep(FRAME_MS);
         }
+#endif
     }
     plat_done();
 

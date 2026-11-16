@@ -5,4 +5,4 @@ game32
 test_vm
 test_forth
 run_fuzz
-web/
+game.html

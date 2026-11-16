@@ -38,7 +38,16 @@ test: test_vm$(EXE) test_forth$(EXE)
 	$(RUN)test_vm$(EXE)
 	$(RUN)test_forth$(EXE)
 
-clean:
-	-$(RM) game$(EXE) test_vm$(EXE) test_forth$(EXE)
+# Веб-версия: один файл game.html, скрипт игры встраивается внутрь.
+# Путь к компилятору можно задать: make web EMCC=путь/к/emcc
+EMCC = emcc
 
-.PHONY: all test clean
+web: game.html
+
+game.html: $(SRC) src/plat_web.c $(HDR) src/shell.html scripts/game.fs
+	$(EMCC) -O2 -o game.html $(SRC) src/plat_web.c --shell-file src/shell.html --embed-file scripts/game.fs -sSINGLE_FILE=1
+
+clean:
+	-$(RM) game$(EXE) test_vm$(EXE) test_forth$(EXE) game.html
+
+.PHONY: all test web clean
