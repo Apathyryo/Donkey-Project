@@ -38,6 +38,24 @@ static void test_arith(void)
     CHECK(RUN(mod) == VM_OK && top() == 2);
 }
 
+/* Граничные случаи, которые нашёл фаззер */
+static void test_overflow(void)
+{
+    int32_t add[] = { OP_PUSH, INT32_MAX, OP_PUSH, 1, OP_ADD, OP_HALT };
+    int32_t sub[] = { OP_PUSH, 0, OP_PUSH, INT32_MIN, OP_SUB, OP_HALT };
+    int32_t mul[] = { OP_PUSH, 65536, OP_PUSH, 65536, OP_MUL, OP_HALT };
+    int32_t div[] = { OP_PUSH, INT32_MIN, OP_PUSH, -1, OP_DIV, OP_HALT };
+    int32_t mod[] = { OP_PUSH, INT32_MIN, OP_PUSH, -1, OP_MOD, OP_HALT };
+    int32_t neg[] = { OP_PUSH, 7, OP_PUSH, -1, OP_DIV, OP_HALT };
+
+    CHECK(RUN(add) == VM_OK && top() == INT32_MIN);
+    CHECK(RUN(sub) == VM_OK && top() == INT32_MIN);
+    CHECK(RUN(mul) == VM_OK && top() == 0);
+    CHECK(RUN(div) == VM_OK && top() == INT32_MIN);
+    CHECK(RUN(mod) == VM_OK && top() == 0);
+    CHECK(RUN(neg) == VM_OK && top() == -7);
+}
+
 static void test_stack(void)
 {
     int32_t dup[] = { OP_PUSH, 7, OP_DUP, OP_HALT };
@@ -158,6 +176,7 @@ static void test_errors(void)
 int main(void)
 {
     test_arith();
+    test_overflow();
     test_stack();
     test_logic();
     test_memory();

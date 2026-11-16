@@ -100,20 +100,23 @@ int vm_run(VM *vm, int addr)
             vm_push(vm, b);
             vm_push(vm, a);
             break;
+        /* Переполнение int в C - неопределённое поведение, поэтому
+           + - * считаем в беззнаковых числах: при переполнении результат
+           "заворачивается", как в процессоре (найдено фаззером) */
         case OP_ADD:
             b = vm_pop(vm);
             a = vm_pop(vm);
-            vm_push(vm, a + b);
+            vm_push(vm, (int32_t)((uint32_t)a + (uint32_t)b));
             break;
         case OP_SUB:
             b = vm_pop(vm);
             a = vm_pop(vm);
-            vm_push(vm, a - b);
+            vm_push(vm, (int32_t)((uint32_t)a - (uint32_t)b));
             break;
         case OP_MUL:
             b = vm_pop(vm);
             a = vm_pop(vm);
-            vm_push(vm, a * b);
+            vm_push(vm, (int32_t)((uint32_t)a * (uint32_t)b));
             break;
         case OP_DIV:
         case OP_MOD:
@@ -125,7 +128,12 @@ int vm_run(VM *vm, int addr)
                 vm->err = VM_ERR_DIV_ZERO;
                 break;
             }
-            vm_push(vm, op == OP_DIV ? a / b : a % b);
+            /* -2147483648 / -1 не помещается в int32 и роняет программу,
+               поэтому деление на -1 считаем отдельно (найдено фаззером) */
+            if (b == -1)
+                vm_push(vm, op == OP_DIV ? (int32_t)(0u - (uint32_t)a) : 0);
+            else
+                vm_push(vm, op == OP_DIV ? a / b : a % b);
             break;
         case OP_EQ:
             b = vm_pop(vm);
