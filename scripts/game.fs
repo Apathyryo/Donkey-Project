@@ -19,6 +19,7 @@ array ok 6
 variable gap       \ сколько шагов до появления следующего объекта
 variable lives     \ жизни
 variable fuel      \ бензин, от 0 до 99
+variable ended     \ 1 - игра окончена
 
 : road-left 13 ;
 : road-right 25 ;
@@ -197,7 +198,16 @@ variable fuel      \ бензин, от 0 до 99
     0 19 s" <- -> lane" text
     0 20 s" Esc   exit" text ;
 
+\ игра кончается, когда нет жизней или бензина
+: check-over
+    lives @ 1 < fuel @ 1 < or if 1 ended ! then ;
+
+: game-over-screen
+    14 9 s"  GAME OVER " text
+    14 10 s" R - restart" text ;
+
 : init
+    0 ended !
     0 dist !
     1 lane !
     0 frame !
@@ -206,13 +216,20 @@ variable fuel      \ бензин, от 0 до 99
     60 fuel !
     clear-objects ;
 
+\ после конца игры ждём R, иначе - обычный кадр
 : tick
-    control
-    frame @ 1 + frame !
-    frame @ delay mod 0 = if step then
-    collide
+    ended @ if
+        key dup 'r' = swap 'R' = or if init then
+    else
+        control
+        frame @ 1 + frame !
+        frame @ delay mod 0 = if step then
+        collide
+        check-over
+    then
     cls
     road
     objects
     player
-    panel ;
+    panel
+    ended @ if game-over-screen then ;
