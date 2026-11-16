@@ -161,6 +161,15 @@ variable fuel      \ бензин, от 0 до 99
         next-j
     until ;
 
+\ сколько кадров длится один шаг мира: в начале 4,
+\ каждые 150 шагов на 1 меньше, но не меньше 1
+: delay ( -- n )
+    4 dist @ 150 / -
+    dup 1 < if drop 1 then ;
+
+\ скорость для панели: от 1 до 4
+: speed ( -- n ) 5 delay - ;
+
 \ один шаг мира: путь растёт, объекты едут вниз,
 \ через 4-6 шагов появляется новый объект
 : step
@@ -183,6 +192,8 @@ variable fuel      \ бензин, от 0 до 99
     28 7 lives @ num
     28 9 s" FUEL" text
     28 10 fuel @ num
+    28 12 s" SPEED" text
+    28 13 speed num
     0 19 s" <- -> lane" text
     0 20 s" Esc   exit" text ;
 
@@ -198,7 +209,7 @@ variable fuel      \ бензин, от 0 до 99
 : tick
     control
     frame @ 1 + frame !
-    frame @ 3 mod 0 = if step then
+    frame @ delay mod 0 = if step then
     collide
     cls
     road
