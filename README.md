@@ -102,6 +102,20 @@
         begin s @ i @ + s ! i @ 1 + i ! i @ 10 > until
         s @ ;
 
+## Платформы
+
+| ОС | Процессор | Графика | Ввод | Сборка |
+|---|---|---|---|---|
+| Windows | x86-64 (64 бита) | консоль | клавиатура, `conio.h` | `mingw32-make` |
+| Linux | x86-64 (64 бита) | терминал, escape-коды | клавиатура, `termios` | `make` |
+| Linux | i386 (32 бита) | терминал, escape-коды | клавиатура, `termios` | `make game32` |
+| Web | WebAssembly (32 бита) | HTML-страница | клавиатура браузера | `make web` |
+
+ОС трёх категорий: Windows, Unix (Linux), Web. Процессоры разной
+разрядности: 64-битный x86-64 и 32-битные i386 и WebAssembly.
+Ядро и скрипт игры одинаковые для всех платформ, отличается только
+файл `src/plat_*.c`.
+
 ## Сборка
 
 Нужны `gcc` и `make`.
@@ -109,6 +123,7 @@
 Linux:
 
     make
+    make game32     # 32-битная версия, нужен пакет gcc-multilib
 
 Windows (MinGW):
 
@@ -121,13 +136,14 @@ Windows (MinGW):
 
 По умолчанию загружается `scripts/game.fs`, другой скрипт можно передать
 аргументом: `./game myscript.fs`. Выход — Esc.
+Окно терминала должно быть не меньше 40x23 символов.
 
 ## Веб-версия
 
 Нужен [Emscripten](https://emscripten.org/). Сборка:
 
     make web
-    mingw32-make web EMCC=D:/Tools/emsdk/upstream/emscripten/emcc.exe   # Windows
+    mingw32-make web EMCC=путь/к/emsdk/upstream/emscripten/emcc.exe   # Windows
 
 Получается один файл `game.html` (скрипт игры встроен внутрь),
 его можно открыть в браузере двойным щелчком.
