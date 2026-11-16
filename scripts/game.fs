@@ -12,12 +12,13 @@ variable lx        \ столбец для vline и dashes
 variable lch       \ символ для vline
 
 \ встречные объекты: у каждого полоса, строка и вид
-\ вид: 0 - объекта нет, 1 - машина, 2 - камень
+\ вид: 0 - объекта нет, 1 - машина, 2 - камень, 3 - канистра
 array ol 6
 array oy 6
 array ok 6
 variable gap       \ сколько шагов до появления следующего объекта
 variable lives     \ жизни
+variable fuel      \ бензин, от 0 до 99
 
 : road-left 13 ;
 : road-right 25 ;
@@ -92,12 +93,13 @@ variable lives     \ жизни
     0 j !
     begin 0 j @ kind ! next-j until ;
 
-\ занять свободный объект: машина или камень в случайной полосе над экраном
+\ занять свободный объект: машина, камень или канистра
+\ в случайной полосе над экраном
 : spawn
     0 j !
     begin
         j @ kind @ 0 = if
-            2 rnd 1 + j @ kind !
+            3 rnd 1 + j @ kind !
             3 rnd j @ olane !
             -1 j @ row !
             max-obj j !      \ нашли свободный - выходим из цикла
@@ -116,11 +118,13 @@ variable lives     \ жизни
         next-j
     until ;
 
-\ машина [V], камень (@)
+\ машина [V], камень (@), канистра [F]
 : draw-object ( n -- )
     dup olane @ lane-x 1 - swap
     dup row @ swap
-    kind @ 1 = if s" [V]" else s" (@)" then
+    kind @
+    dup 1 = if drop s" [V]" else
+    2 = if s" (@)" else s" [F]" then then
     text ;
 
 : objects
@@ -138,14 +142,20 @@ variable lives     \ жизни
     swap car-y 3 + <
     and and ;
 
-\ столкновение с машиной или камнем: минус жизнь, объект пропадает
+\ канистра: +20 бензина, но не больше 99
+: refuel
+    fuel @ 20 + fuel !
+    fuel @ 99 > if 99 fuel ! then ;
+
+\ наехали на объект: канистра заправляет, машина или камень
+\ отнимают жизнь; объект пропадает
 : collide
     0 j !
     begin
         j @ kind @ if
             j @ hit? if
+                j @ kind @ 3 = if refuel else lives @ 1 - lives ! then
                 0 j @ kind !
-                lives @ 1 - lives !
             then
         then
         next-j
@@ -155,6 +165,7 @@ variable lives     \ жизни
 \ через 4-6 шагов появляется новый объект
 : step
     dist @ 1 + dist !
+    dist @ 2 mod 0 = fuel @ 0 > and if fuel @ 1 - fuel ! then
     move-objects
     gap @ 1 - gap !
     gap @ 0 > not if
@@ -170,6 +181,8 @@ variable lives     \ жизни
     28 4 dist @ num
     28 6 s" LIVES" text
     28 7 lives @ num
+    28 9 s" FUEL" text
+    28 10 fuel @ num
     0 19 s" <- -> lane" text
     0 20 s" Esc   exit" text ;
 
@@ -179,6 +192,7 @@ variable lives     \ жизни
     0 frame !
     3 gap !
     3 lives !
+    60 fuel !
     clear-objects ;
 
 : tick
